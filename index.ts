@@ -5,7 +5,7 @@ import {
   Server
 } from './deps.ts';
 
-const version = 'v0.0.2';
+const version = 'v0.0.5';
 
 interface PageData {
   head: string;
@@ -250,7 +250,7 @@ export default class Nattramn {
             'Content-Type': 'application/javascript',
             'Location': `https://unpkg.com/nattramn@${version}`
           }),
-          status: 302
+          status: 307
         });
         return;
       }
