@@ -1,5 +1,4 @@
 import {
-  readFileStr,
   serve,
   extname,
   ServerRequest,
@@ -246,8 +245,6 @@ export default class Nattramn {
 
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
-        const body = await readFileStr('./nattramn-client.js');
-
         await req.respond({
           body,
           headers: new Headers({
