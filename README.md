@@ -1,6 +1,6 @@
 # Nattramn
 
-![](https://svgur.com/i/Le2.svg =300x)
+<img src="https://svgur.com/i/Le2.svg" width="300" />
 
 A continuation of [Wext.js](https://github.com/Vufuzi/wext.js) for [Deno](https://deno.land/).
 
