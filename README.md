@@ -88,3 +88,5 @@ Express-like functionally with handlers for route, with the big difference that 
 ## Other
 
 Nattramn in currently in production at [podd.app](https://podd.app).
+
+Logo attribution: https://commons.wikimedia.org/wiki/File:Year_Walk_(Nattravnen).PNG
