@@ -2,10 +2,12 @@ import {
   serve,
   extname,
   ServerRequest,
-  Server
+  Server,
+  brotliEncode,
+  gzipEncode
 } from './deps.ts';
 
-const version = 'v0.0.7';
+const version = 'v0.0.8';
 
 interface PageData {
   head: string;
@@ -27,10 +29,15 @@ interface RouterConfig {
   pages: Page[];
 }
 
+export enum CompressionMethod {
+  Gzip = 'gzip',
+  Brotli = 'br',
+  None = 'none',
+}
+
 interface ServerConfig {
-  compression: boolean;
+  compression?: CompressionMethod;
   serveStatic?: string;
-  minifyHTML: boolean;
 }
 
 interface Config {
@@ -63,8 +70,7 @@ function getContentType(path: string): string | undefined {
 
 const defaultConfig: Config = {
   server: {
-    compression: true,
-    minifyHTML: true
+    compression: CompressionMethod.Brotli
   },
   router: {
     pages: []
@@ -139,7 +145,7 @@ function routeParams (req: ServerRequest, route: string) {
   }, {});
 }
 
-async function proxy (req: ServerRequest, page: Page) {
+async function proxy (req: ServerRequest, page: Page, config: Config) {
   const partialContent = Boolean(req.headers.get('x-partial-content') || reqToURL(req).searchParams.get('partialContent'));
   const pageData = await page.handler(req, routeParams(req, page.route));
   const responseBody = [];
@@ -203,7 +209,26 @@ async function proxy (req: ServerRequest, page: Page) {
     await responseBody.push(postContent);
   }
 
-  await req.respond({ headers, body: responseBody.join('\n'), status: 200 });
+  let finalBody: string | Uint8Array = responseBody.join('\n');
+
+  const useGzip = config.server.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
+  const useBrotli = config.server.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
+
+  if (useGzip || useBrotli) {
+    const uintArray = new TextEncoder().encode(finalBody);
+
+    if (useGzip) {
+      headers.set('content-encoding', 'gzip');
+      finalBody = gzipEncode(uintArray);
+    }
+
+    if (useBrotli) {
+      headers.set('content-encoding', 'br');
+      finalBody = brotliEncode(uintArray);
+    }
+  }
+
+  await req.respond({ headers, body: finalBody, status: 200 });
 }
 
 async function serveStatic (req: ServerRequest, filePath: string) {
@@ -271,7 +296,7 @@ export default class Nattramn {
     const page = this.config.router.pages.find(page => canHandleRoute(req, page.route));
 
     if (page) {
-      await proxy(req, page);
+      await proxy(req, page, this.config);
     } else {
       throw new Error('Could not find route.');
     }

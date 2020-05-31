@@ -1,2 +1,2 @@
-demo:
-	deno run --allow-read --allow-net demo.ts
+example:
+	deno run --allow-net example.ts
