@@ -6,6 +6,8 @@ import {
   Server
 } from './deps.ts';
 
+const version = 'v0.0.1';
+
 interface PageData {
   head: string;
   body: string;
@@ -249,8 +251,10 @@ export default class Nattramn {
         await req.respond({
           body,
           headers: new Headers({
-            'Content-Type': 'application/javascript'
-          })
+            'Content-Type': 'application/javascript',
+            'Location': `https://unpkg.com/nattramn@${version}`
+          }),
+          status: 302
         });
         return;
       }
