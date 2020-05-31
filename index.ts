@@ -244,7 +244,7 @@ export default class Nattramn {
 
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
-        const body = await readFileStr('../browser/nattramn-client.js');
+        const body = await readFileStr('./nattramn-client.js');
 
         await req.respond({
           body,
@@ -282,8 +282,17 @@ export default class Nattramn {
       try {
         await this.handleRequest(req);
       } catch (e) {
-        console.log(req);
-        console.log(e);
+        console.debug(`Nattramn was asked to answer for ${req.url} but did not find a suitable way to handle it.`);
+
+        if (extname(req.url) === null) {
+          console.debug('The route is missing.');
+        }
+
+        if (extname(req.url) !== null) {
+          console.debug('The file is missing.');
+        }
+
+        console.error(e);
         req.respond({ status: 404, body: 'Not Found' });
       }
     }
