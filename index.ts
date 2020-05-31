@@ -246,7 +246,6 @@ export default class Nattramn {
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
         await req.respond({
-          body,
           headers: new Headers({
             'Content-Type': 'application/javascript',
             'Location': `https://unpkg.com/nattramn@${version}`
