@@ -5,7 +5,7 @@ import {
   Server
 } from './deps.ts';
 
-const version = 'v0.0.5';
+const version = 'v0.0.7';
 
 interface PageData {
   head: string;
