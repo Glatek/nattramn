@@ -7,7 +7,7 @@ import {
   gzipEncode
 } from './deps.ts';
 
-const version = 'v0.0.8';
+const version = 'v0.0.9';
 
 interface PageData {
   head: string;
@@ -67,15 +67,6 @@ const MEDIA_TYPES: Record<string, string> = {
 function getContentType(path: string): string | undefined {
   return MEDIA_TYPES[extname(path)];
 }
-
-const defaultConfig: Config = {
-  server: {
-    compression: CompressionMethod.Brotli
-  },
-  router: {
-    pages: []
-  }
-};
 
 /**
  * Function to decide wether or not we include the part
@@ -253,11 +244,12 @@ async function serveStatic (req: ServerRequest, filePath: string) {
 export default class Nattramn {
   config: Config;
 
-  constructor (config: Config = defaultConfig) {
-    this.config = {
-      ...defaultConfig,
-      ...config
-    };
+  constructor (config: Config) {
+    this.config = config;
+
+    if (this.config.server.compression === undefined) {
+      this.config.server.compression = CompressionMethod.Brotli;
+    }
 
     Object.freeze(this.config);
   }
