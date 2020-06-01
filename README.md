@@ -19,7 +19,7 @@ Use the `<nattramn-link>` web component for routes you wish to use soft navigati
 ### Example
 
 ```typescript
-import Nattramn from 'https://deno.land/x/npm:nattramn/index.ts';
+import Nattramn from 'https://deno.land/x/gh:Vufuzi:nattramn/index.ts';
 
 const template = `
   <!DOCTYPE html>
@@ -30,7 +30,7 @@ const template = `
   </head>
   <body>
     <nattramn-router></nattramn-router>
-    <script type="module" src="nattramn-client.js"></script>
+    <script type="module" src="/nattramn-client.js"></script>
   </body>
   </html>
 `;
