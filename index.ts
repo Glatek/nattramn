@@ -7,8 +7,6 @@ import {
   gzipEncode
 } from './deps.ts';
 
-const version = 'v0.0.9';
-
 interface PageData {
   head: string;
   body: string;
@@ -265,7 +263,7 @@ export default class Nattramn {
         await req.respond({
           headers: new Headers({
             'Content-Type': 'application/javascript',
-            'Location': `https://unpkg.com/nattramn@${version}`
+            'Location': 'https://unpkg.com/nattramn@latest'
           }),
           status: 307
         });
