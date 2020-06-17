@@ -4,7 +4,8 @@ import {
   ServerRequest,
   Server,
   brotliEncode,
-  gzipEncode
+  gzipEncode,
+  Sha1
 } from './deps.ts';
 
 interface PageData {
@@ -260,12 +261,37 @@ export default class Nattramn {
 
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
+        const response = await fetch('https://deno.land/x/npm:nattramn/dist-web/index.bundled.js');
+        let body: string | Uint8Array = await response.text();
+
+        const checksum = new Sha1().update(body).hex();
+
+        const headers = new Headers({
+          'Content-Type': 'application/javascript',
+          'ETag': checksum
+        });
+
+        const useGzip = this.config.server.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
+        const useBrotli = this.config.server.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
+
+        if (useGzip || useBrotli) {
+          const uintArray = new TextEncoder().encode(body);
+
+          if (useGzip) {
+            headers.set('content-encoding', 'gzip');
+            body = gzipEncode(uintArray);
+          }
+
+          if (useBrotli) {
+            headers.set('content-encoding', 'br');
+            body = brotliEncode(uintArray);
+          }
+        }
+
         await req.respond({
-          headers: new Headers({
-            'Content-Type': 'application/javascript',
-            'Location': 'https://unpkg.com/nattramn@latest'
-          }),
-          status: 307
+          headers,
+          status: 200,
+          body,
         });
         return;
       }

@@ -1,2 +1,2 @@
 example:
-	deno run --allow-net example.ts
+	deno run --allow-net --allow-read example.ts
