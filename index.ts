@@ -216,6 +216,10 @@ async function proxy (req: ServerRequest, page: Page, config: Config) {
       headers.set('content-encoding', 'br');
       finalBody = brotliEncode(uintArray);
     }
+
+    if (finalBody instanceof Uint8Array) {
+      headers.set('content-length', finalBody.byteLength + '');
+    }
   }
 
   await req.respond({ headers, body: finalBody, status: 200 });
