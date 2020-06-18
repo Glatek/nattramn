@@ -221,8 +221,10 @@ async function proxy (req: ServerRequest, page: Page, config: Config) {
   await req.respond({ headers, body: finalBody, status: 200 });
 }
 
-async function serveStatic (req: ServerRequest, filePath: string) {
+async function serveStatic (req: ServerRequest, filePath: string, serverConfig: ServerConfig) {
   filePath = '.' + filePath;
+
+  const ext = extname(filePath);
 
   const [file, fileInfo] = await Promise.all([Deno.open(filePath), Deno.stat(filePath)]);
   const headers = new Headers();
@@ -235,7 +237,26 @@ async function serveStatic (req: ServerRequest, filePath: string) {
     headers.set('content-type', contentType);
   }
 
-  await req.respond({ headers, body: file, status: 200 })
+  const useGzip = serverConfig.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
+  const useBrotli = serverConfig.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
+
+  let body: Deno.File | Uint8Array | string = file;
+
+  if (useGzip || useBrotli) {
+    const uintArray = await Deno.readAll(file);
+
+    if (useGzip) {
+      headers.set('content-encoding', 'gzip');
+      body = gzipEncode(uintArray);
+    }
+
+    if (useBrotli) {
+      headers.set('content-encoding', 'br');
+      body = brotliEncode(uintArray);
+    }
+  }
+
+  await req.respond({ headers, body, status: 200 })
 
   Deno.close(file.rid);
 }
@@ -297,12 +318,12 @@ export default class Nattramn {
       }
 
       if (staticPath) {
-        await serveStatic(req, url.pathname);
+        await serveStatic(req, url.pathname, this.config.server);
         return;
       }
 
       if (this.config.server.serveStatic) {
-        await serveStatic(req, '/' + this.config.server.serveStatic + url.pathname);
+        await serveStatic(req, '/' + this.config.server.serveStatic + url.pathname, this.config.server);
         return;
       }
 
