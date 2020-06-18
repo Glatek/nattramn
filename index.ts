@@ -269,6 +269,8 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
     Deno.close(file.rid);
   }
 
+  headers.set('Cache-Control', 'public, max-age=3600');
+
   await req.respond({ headers, body, status: 200 })
 }
 
