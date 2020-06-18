@@ -226,9 +226,9 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
 
   const ext = extname(filePath);
 
-  console.log('ext', ext);
+  console.log('ext', ext, filePath);
 
-  const [file, fileInfo] = await Promise.all([Deno.open(filePath), Deno.stat(filePath)]);
+  const [file, fileInfo] = await Promise.all([Deno.open(filePath, { read: true }), Deno.stat(filePath)]);
   const headers = new Headers();
 
   headers.set('content-length', fileInfo.size.toString());
@@ -246,6 +246,7 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
 
   if (useGzip || useBrotli) {
     const uintArray = await Deno.readAll(file);
+    Deno.close(file.rid);
     const checksum = new Sha1().update(uintArray).hex();
 
     headers.set('etag', checksum);
@@ -259,11 +260,11 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
       headers.set('content-encoding', 'br');
       body = brotliEncode(uintArray);
     }
+  } else {
+    Deno.close(file.rid);
   }
 
   await req.respond({ headers, body, status: 200 })
-
-  Deno.close(file.rid);
 }
 
 export default class Nattramn {
