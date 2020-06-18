@@ -29,7 +29,8 @@ const config = {
             <h1>Nattramn</h1>
             <h2>Home</h2>
             <p>
-              Click link to go further!
+              Click link to go further!<br>
+              <img src="demo.png"><br>
               Read <nattramn-link href="/about">about me.</nattramn-link>
             </p>
             `,

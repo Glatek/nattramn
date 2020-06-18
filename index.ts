@@ -226,6 +226,8 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
 
   const ext = extname(filePath);
 
+  console.log('ext', ext);
+
   const [file, fileInfo] = await Promise.all([Deno.open(filePath), Deno.stat(filePath)]);
   const headers = new Headers();
 
@@ -244,6 +246,9 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
 
   if (useGzip || useBrotli) {
     const uintArray = await Deno.readAll(file);
+    const checksum = new Sha1().update(uintArray).hex();
+
+    headers.set('etag', checksum);
 
     if (useGzip) {
       headers.set('content-encoding', 'gzip');
