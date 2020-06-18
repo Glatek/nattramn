@@ -31,6 +31,8 @@ const config = {
             <p>
               Click link to go further!<br>
               <img src="demo.png"><br>
+              <img src="demo.png"><br>
+              <img src="demo.png"><br>
               Read <nattramn-link href="/about">about me.</nattramn-link>
             </p>
             `,

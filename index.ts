@@ -226,12 +226,8 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
 
   const ext = extname(filePath);
 
-  console.log('ext', ext, filePath);
-
   const [file, fileInfo] = await Promise.all([Deno.open(filePath, { read: true }), Deno.stat(filePath)]);
   const headers = new Headers();
-
-  headers.set('content-length', fileInfo.size.toString());
 
   const contentType = getContentType(filePath);
 
@@ -260,7 +256,12 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
       headers.set('content-encoding', 'br');
       body = brotliEncode(uintArray);
     }
+
+    if (body instanceof Uint8Array) {
+      headers.set('content-length', body.byteLength + '');
+    }
   } else {
+    headers.set('content-length', fileInfo.size.toString());
     Deno.close(file.rid);
   }
 
@@ -360,15 +361,13 @@ export default class Nattramn {
           console.debug('The file is missing.');
         }
 
-        console.error(e);
+        console.debug(e);
         req.respond({ status: 404, body: 'Not Found' });
       }
     }
   }
 
   async startServer (port = 5000) {
-    // console.log('Using config: ', JSON.stringify(this.config));
-
     const server = serve({ port });
 
     console.log('Nattramn is running at: http://localhost:' + port);
