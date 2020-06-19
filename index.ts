@@ -228,8 +228,6 @@ async function proxy (req: ServerRequest, page: Page, config: Config) {
 async function serveStatic (req: ServerRequest, filePath: string, serverConfig: ServerConfig) {
   filePath = '.' + filePath;
 
-  const ext = extname(filePath);
-
   const [file, fileInfo] = await Promise.all([Deno.open(filePath, { read: true }), Deno.stat(filePath)]);
   const headers = new Headers();
 
@@ -244,7 +242,13 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
 
   let body: Deno.File | Uint8Array | string = file;
 
-  if (useGzip || useBrotli) {
+  const allowedCompression = [
+    "text/css",
+    "text/html",
+    "application/javascript",
+  ];
+
+  if (useGzip || useBrotli && contentType && allowedCompression.includes(contentType)) {
     const uintArray = await Deno.readAll(file);
     Deno.close(file.rid);
     const checksum = new Sha1().update(uintArray).hex();
