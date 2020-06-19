@@ -135,7 +135,7 @@ function routeParams (req: ServerRequest, route: string) {
   }, {});
 }
 
-async function proxy (req: ServerRequest, page: Page, config: Config) {
+async function proxy (req: ServerRequest, page: Page, config: Config): Promise<PartialResponse> {
   const partialContent = Boolean(req.headers.get('x-partial-content') || reqToURL(req).searchParams.get('partialContent'));
   const pageData = await page.handler(req, routeParams(req, page.route));
   const responseBody = [];
@@ -149,10 +149,6 @@ async function proxy (req: ServerRequest, page: Page, config: Config) {
   const preContent = generatePreContent(page.template, partialContent);
 
   const headers = new Headers(pageDataHeaders);
-
-  if (headers.get('Cache-Control') === null) {
-    headers.set('Cache-Control', 'public, max-age=3600');
-  }
 
   headers.set('Content-Type', 'text/html');
 
@@ -199,83 +195,36 @@ async function proxy (req: ServerRequest, page: Page, config: Config) {
     await responseBody.push(postContent);
   }
 
-  let finalBody: string | Uint8Array = responseBody.join('\n');
+  const finalBody =  new TextEncoder().encode(responseBody.join('\n'));
 
-  const useGzip = config.server.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
-  const useBrotli = config.server.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
-
-  if (useGzip || useBrotli) {
-    const uintArray = new TextEncoder().encode(finalBody);
-
-    if (useGzip) {
-      headers.set('content-encoding', 'gzip');
-      finalBody = gzipEncode(uintArray);
-    }
-
-    if (useBrotli) {
-      headers.set('content-encoding', 'br');
-      finalBody = brotliEncode(uintArray);
-    }
-
-    if (finalBody instanceof Uint8Array) {
-      headers.set('content-length', finalBody.byteLength + '');
-    }
-  }
-
-  await req.respond({ headers, body: finalBody, status: 200 });
+  return { headers, body: finalBody, status: 200 };
 }
 
-async function serveStatic (req: ServerRequest, filePath: string, serverConfig: ServerConfig) {
+async function serveStatic (req: ServerRequest, filePath: string, serverConfig: ServerConfig): Promise<PartialResponse> {
   filePath = '.' + filePath;
+  const file = await Deno.open(filePath, { read: true });
 
-  const [file, fileInfo] = await Promise.all([Deno.open(filePath, { read: true }), Deno.stat(filePath)]);
-  const headers = new Headers();
+  try {
+    const headers = new Headers();
 
-  const contentType = getContentType(filePath);
+    const contentType = getContentType(filePath);
 
-  if (contentType) {
-    headers.set('content-type', contentType);
-  }
-
-  const useGzip = serverConfig.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
-  const useBrotli = serverConfig.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
-
-  let body: Deno.File | Uint8Array | string = file;
-
-  const allowedCompression = [
-    "text/css",
-    "text/html",
-    "application/javascript",
-  ];
-
-  if (useGzip || useBrotli && contentType && allowedCompression.includes(contentType)) {
-    const uintArray = await Deno.readAll(file);
-    Deno.close(file.rid);
-    const checksum = new Sha1().update(uintArray).hex();
-
-    headers.set('etag', checksum);
-
-    if (useGzip) {
-      headers.set('content-encoding', 'gzip');
-      body = gzipEncode(uintArray);
+    if (contentType) {
+      headers.set('content-type', contentType);
     }
 
-    if (useBrotli) {
-      headers.set('content-encoding', 'br');
-      body = brotliEncode(uintArray);
-    }
+    const body = await Deno.readAll(file);
 
-    if (body instanceof Uint8Array) {
-      headers.set('content-length', body.byteLength + '');
-    }
-  } else {
-    headers.set('content-length', fileInfo.size.toString());
+    return { headers, body, status: 200 };
+  } finally {
     Deno.close(file.rid);
   }
+}
 
-  headers.set('Cache-Control', 'public, max-age=3600');
-
-  await req.respond({ headers, body, status: 200 })
+interface PartialResponse {
+  status: number;
+  body: Uint8Array;
+  headers: Headers;
 }
 
 export default class Nattramn {
@@ -291,7 +240,7 @@ export default class Nattramn {
     Object.freeze(this.config);
   }
 
-  async handleRequest (req: ServerRequest) {
+  async handleRequest (req: ServerRequest): Promise<PartialResponse> {
     const url = reqToURL(req);
     const staticPath = url.pathname.match(this.config.server.serveStatic ?? '');
 
@@ -300,48 +249,28 @@ export default class Nattramn {
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
         const response = await fetch('https://deno.land/x/npm:nattramn/dist-web/index.bundled.js');
-        let body: string | Uint8Array = await response.text();
+        const arrayBuffer = await response.arrayBuffer();
+        let body = new Uint8Array(arrayBuffer);
 
         const checksum = new Sha1().update(body).hex();
 
         const headers = new Headers({
-          'Content-Type': 'application/javascript',
-          'ETag': checksum
+          'Content-Type': 'application/javascript'
         });
 
-        const useGzip = this.config.server.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
-        const useBrotli = this.config.server.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
-
-        if (useGzip || useBrotli) {
-          const uintArray = new TextEncoder().encode(body);
-
-          if (useGzip) {
-            headers.set('content-encoding', 'gzip');
-            body = gzipEncode(uintArray);
-          }
-
-          if (useBrotli) {
-            headers.set('content-encoding', 'br');
-            body = brotliEncode(uintArray);
-          }
-        }
-
-        await req.respond({
+        return {
           headers,
           status: 200,
-          body,
-        });
-        return;
+          body
+        };
       }
 
       if (staticPath) {
-        await serveStatic(req, url.pathname, this.config.server);
-        return;
+        return serveStatic(req, url.pathname, this.config.server);
       }
 
       if (this.config.server.serveStatic) {
-        await serveStatic(req, '/' + this.config.server.serveStatic + url.pathname, this.config.server);
-        return;
+        return serveStatic(req, '/' + this.config.server.serveStatic + url.pathname, this.config.server);
       }
 
       throw new Error('Could not find file.');
@@ -350,7 +279,7 @@ export default class Nattramn {
     const page = this.config.router.pages.find(page => canHandleRoute(req, page.route));
 
     if (page) {
-      await proxy(req, page, this.config);
+      return proxy(req, page, this.config);
     } else {
       throw new Error('Could not find route.');
     }
@@ -359,7 +288,32 @@ export default class Nattramn {
   async handleRequests (server: Server) {
     for await (const req of server) {
       try {
-        await this.handleRequest(req);
+        let { body, status, headers } = await this.handleRequest(req);
+
+        const checksum = new Sha1().update(body).hex();
+
+        headers.set('ETag', checksum);
+
+        if (headers.get('Cache-Control') === null) {
+          headers.set('Cache-Control', 'public, max-age=3600');
+        }
+
+        const useGzip = this.config.server.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
+        const useBrotli = this.config.server.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
+
+        if (useGzip) {
+          headers.set('Content-Encoding', 'gzip');
+          body = gzipEncode(body);
+        }
+
+        if (useBrotli) {
+          headers.set('Content-Encoding', 'br');
+          body = brotliEncode(body);
+        }
+
+        headers.set('Content-Length', String(body.byteLength));
+
+        await req.respond({ body, status, headers });
       } catch (e) {
         console.debug(`Nattramn was asked to answer for ${req.url} but did not find a suitable way to handle it.`);
 
