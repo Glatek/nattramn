@@ -248,7 +248,7 @@ export default class Nattramn {
 
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
-        const response = await fetch('https://deno.land/x/npm:nattramn/dist-web/index.bundled.js');
+        const response = await fetch('https://unpkg.com/nattramn@latest/dist-web/index.bundled.js');
         const arrayBuffer = await response.arrayBuffer();
         let body = new Uint8Array(arrayBuffer);
 
