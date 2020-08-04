@@ -250,9 +250,7 @@ export default class Nattramn {
       if (url.pathname === '/nattramn-client.js') {
         const response = await fetch('https://unpkg.com/nattramn@latest/dist-web/index.bundled.js');
         const arrayBuffer = await response.arrayBuffer();
-        let body = new Uint8Array(arrayBuffer);
-
-        const checksum = new Sha1().update(body).hex();
+        const body = new Uint8Array(arrayBuffer);
 
         const headers = new Headers({
           'Content-Type': 'application/javascript'
