@@ -19,7 +19,7 @@ Use the `<nattramn-link>` web component for routes you wish to use soft navigati
 ### Example
 
 ```typescript
-import Nattramn from 'https://deno.land/x/gh:Vufuzi:nattramn/index.ts';
+import Nattramn from 'https://deno.land/x/nattramn/index.ts';
 
 const template = `
   <!DOCTYPE html>
