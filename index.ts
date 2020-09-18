@@ -249,22 +249,14 @@ export default class Nattramn {
 
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
-        const response = await fetch('https://cdn.skypack.dev/nattramn@v0.0.13/dist-web/index.bundled.js');
-        const arrayBuffer = await response.arrayBuffer();
-        const body = new Uint8Array(arrayBuffer);
-
-        const checksum = new Sha1().update(body).hex();
-
         const headers = new Headers({
-          'Content-Type': 'application/javascript',
-          'ETag': checksum,
-          'Cache-Control': 'public, max-age=3600'
+          'Location': 'https://cdn.skypack.dev/nattramn@v0.0.13/dist-web/index.bundled.js'
         });
 
         return {
           headers,
-          status: 200,
-          body
+          status: 302,
+          body: new Uint8Array([])
         };
       }
 
