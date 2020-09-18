@@ -249,7 +249,7 @@ export default class Nattramn {
 
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
-        const response = await fetch('https://unpkg.com/nattramn@v0.0.13/dist-web/index.bundled.js');
+        const response = await fetch('https://cdn.skypack.dev/nattramn@v0.0.13/dist-web/index.bundled.js');
         const arrayBuffer = await response.arrayBuffer();
         const body = new Uint8Array(arrayBuffer);
 
