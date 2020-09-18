@@ -250,7 +250,7 @@ export default class Nattramn {
     if (hasExtention) {
       if (url.pathname === '/nattramn-client.js') {
         const headers = new Headers({
-          'Location': 'https://cdn.skypack.dev/nattramn@v0.0.13/dist-web/index.bundled.js'
+          'Location': 'https://cdn.skypack.dev/nattramn@v0.0.14/dist-web/index.bundled.js'
         });
 
         return {
