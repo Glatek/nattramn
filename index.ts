@@ -252,8 +252,12 @@ export default class Nattramn {
         const arrayBuffer = await response.arrayBuffer();
         const body = new Uint8Array(arrayBuffer);
 
+        const checksum = new Sha1().update(body).hex();
+
         const headers = new Headers({
-          'Content-Type': 'application/javascript'
+          'Content-Type': 'application/javascript',
+          'ETag': checksum,
+          'Cache-Control': 'public, max-age=3600'
         });
 
         return {
