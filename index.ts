@@ -162,9 +162,10 @@ async function proxy (req: ServerRequest, page: Page, config: Config): Promise<P
     if (match) {
       const title = match ? match[1] : '';
       const json = JSON.stringify({ title });
-      const base64JSON = btoa(unescape(encodeURIComponent(json)));
+      const encoder = new TextEncoder();
+      const data = JSON.stringify([...encoder.encode(json)]);
 
-      headers.set('X-Header-Updates', base64JSON);
+      headers.set('X-Header-Updates', data);
     }
   }
 
