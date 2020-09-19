@@ -1,11 +1,14 @@
 import {
   serve,
   extname,
-  ServerRequest,
-  Server,
   brotliEncode,
   gzipEncode,
   Sha1
+} from './deps.ts';
+
+import type {
+  ServerRequest,
+  Server
 } from './deps.ts';
 
 interface PageData {
