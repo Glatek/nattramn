@@ -1,3 +1,3 @@
 VERSION=`v0.0.25`
-git tag -a $VERISON -m $VERISON
+git tag -a $VERSION -m $VERSION
 git push origin --tags
