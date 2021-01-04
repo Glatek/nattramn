@@ -246,7 +246,6 @@ export default class Nattramn {
 
   async handleRequest (req: ServerRequest): Promise<PartialResponse> {
     const url = reqToURL(req);
-    const staticPath = url.pathname.match(this.config.server.serveStatic ?? '');
 
     const hasExtention = extname(url.pathname) !== "";
 
@@ -265,11 +264,8 @@ export default class Nattramn {
         };
       }
 
-      if (staticPath) {
-        return serveStatic(req, url.pathname, this.config.server);
-      }
-
       if (this.config.server.serveStatic) {
+        console.log('serveStatic', '/' + this.config.server.serveStatic + url.pathname, this.config.server)
         return serveStatic(req, '/' + this.config.server.serveStatic + url.pathname, this.config.server);
       }
 
@@ -288,7 +284,9 @@ export default class Nattramn {
   async handleRequests (server: Server) {
     for await (const req of server) {
       try {
-        let { body, status, headers } = await this.handleRequest(req);
+        const handledRequest = this.handleRequest(req);
+        const { status, headers } = await handledRequest;
+        let { body } = await handledRequest;
 
         const checksum = new Sha1().update(body).hex();
 
