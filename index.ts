@@ -265,7 +265,6 @@ export default class Nattramn {
       }
 
       if (this.config.server.serveStatic) {
-        console.log('serveStatic', '/' + this.config.server.serveStatic + url.pathname, this.config.server)
         return serveStatic(req, '/' + this.config.server.serveStatic + url.pathname, this.config.server);
       }
 
