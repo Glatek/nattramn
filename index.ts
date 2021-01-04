@@ -15,7 +15,7 @@ interface PageData {
   head: string;
   body: string;
   headers?: HeadersInit;
-};
+}
 
 interface PageHandlerCallback {
   (req: ServerRequest, params: Record<string, string>): Promise<PageData>;
