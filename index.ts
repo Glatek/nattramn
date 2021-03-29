@@ -244,7 +244,7 @@ export default class Nattramn {
     Object.freeze(this.config);
   }
 
-  async handleRequest (req: ServerRequest): Promise<PartialResponse> {
+  handleRequest (req: ServerRequest): Promise<PartialResponse> {
     const url = reqToURL(req);
 
     const hasExtention = extname(url.pathname) !== "";
@@ -257,11 +257,11 @@ export default class Nattramn {
           'ETag': btoa(version)
         });
 
-        return {
+        return Promise.resolve({
           headers,
           status: 302,
           body: new Uint8Array([])
-        };
+        });
       }
 
       if (this.config.server.serveStatic) {
@@ -322,7 +322,8 @@ export default class Nattramn {
           console.debug('The file is missing.', req.url);
         }
 
-        console.debug(e);
+        console.error(e);
+
         req.respond({ status: 404, body: 'Not Found' });
       }
     }
