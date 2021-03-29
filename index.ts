@@ -315,11 +315,11 @@ export default class Nattramn {
         console.debug(`Nattramn was asked to answer for ${req.url} but did not find a suitable way to handle it.`);
 
         if (extname(req.url) === null) {
-          console.debug('The route is missing.');
+          console.debug('The route is missing.', req.url);
         }
 
         if (extname(req.url) !== null) {
-          console.debug('The file is missing.');
+          console.debug('The file is missing.', req.url);
         }
 
         console.debug(e);
