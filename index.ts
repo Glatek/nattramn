@@ -103,8 +103,8 @@ function reqToURL (req: ServerRequest) {
 }
 
 function canHandleRoute (req: ServerRequest, route: string) {
-  const reqUrl = reqToURL(req).pathname;
-  const requestURL = reqUrl.split('/');
+  const { pathname } = reqToURL(req);
+  const requestURL = pathname.split('/');
   const routeURL = route.split('/');
 
   const matches = routeURL
@@ -121,7 +121,8 @@ function canHandleRoute (req: ServerRequest, route: string) {
 }
 
 function routeParams (req: ServerRequest, route: string) {
-  const requestURL = reqToURL(req).pathname.split('/');
+  const { pathname } = reqToURL(req);
+  const requestURL = pathname.split('/');
   const routeURL = route.split('/');
 
   return routeURL.reduce((acc, curr, i) => {
@@ -138,7 +139,7 @@ function routeParams (req: ServerRequest, route: string) {
   }, {});
 }
 
-async function proxy (req: ServerRequest, page: Page, config: Config): Promise<PartialResponse> {
+async function proxy (req: ServerRequest, page: Page): Promise<PartialResponse> {
   const partialContent = Boolean(req.headers.get('x-partial-content') || reqToURL(req).searchParams.get('partialContent'));
   const pageData = await page.handler(req, routeParams(req, page.route));
   const responseBody = [];
@@ -274,7 +275,7 @@ export default class Nattramn {
     const page = this.config.router.pages.find(page => canHandleRoute(req, page.route));
 
     if (page) {
-      return proxy(req, page, this.config);
+      return proxy(req, page);
     } else {
       throw new Error('Could not find route.');
     }
