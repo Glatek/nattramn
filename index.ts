@@ -118,8 +118,9 @@ function reqToURL (req: Request) {
 }
 
 function canHandleRoute (req: Request, route: string) {
-  const matcher = new URLPattern(route);
-  const result = matcher.exec(new URL(req.url).pathname);
+  const url = new URL(req.url);
+  const matcher = new URLPattern({ pathname: route });
+  const result = matcher.exec(url);
 
   return Boolean(result);
 }
