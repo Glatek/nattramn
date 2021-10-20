@@ -2,13 +2,7 @@ import {
   serve,
   extname,
   brotliEncode,
-  gzipEncode,
-  Sha1
-} from './deps.ts';
-
-import type {
-  ServerRequest,
-  Server
+  gzipEncode
 } from './deps.ts';
 
 interface PageData {
@@ -18,7 +12,7 @@ interface PageData {
 }
 
 interface PageHandlerCallback {
-  (req: ServerRequest, params: Record<string, string>): Promise<PageData>;
+  (req: Request, params: Record<string, string>): Promise<PageData>;
 }
 
 interface Page {
@@ -70,6 +64,29 @@ function getContentType(path: string): string | undefined {
   return MEDIA_TYPES[extname(path)];
 }
 
+function stringToUint8Array (s: string) {
+  const te = new TextEncoder();
+
+  return te.encode(s);
+}
+
+async function sha1 (input: Uint8Array | string) {
+  let data: Uint8Array;
+
+  if (typeof input === 'string') {
+    const te = new TextEncoder();
+    data = te.encode(input as string);
+  } else {
+    data = input;
+  }
+
+  const hashBuffer = await crypto.subtle.digest('sha-1', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return hashHex;
+}
+
 /**
  * Function to decide wether or not we include the part
  * of the template before the <nattramn-router> tag or not.
@@ -96,13 +113,11 @@ function generatePostContent (template: string, answerWithPartialContent: boolea
     template.indexOf('</nattramn-router>') !== -1 ? template.split('</nattramn-router>')[1] : template;
 }
 
-function reqToURL (req: ServerRequest) {
-  const base = req.conn.localAddr.transport === 'tcp' ? req.conn.localAddr.hostname : 'localhost';
-
-  return new URL(req.url, 'http://' + base);
+function reqToURL (req: Request) {
+  return new URL(req.url);
 }
 
-function canHandleRoute (req: ServerRequest, route: string) {
+function canHandleRoute (req: Request, route: string) {
   const { pathname } = reqToURL(req);
   const requestURL = pathname.split('/');
   const routeURL = route.split('/');
@@ -120,7 +135,7 @@ function canHandleRoute (req: ServerRequest, route: string) {
   return matches.length === routeURL.length && matches.length === requestURL.length;
 }
 
-function routeParams (req: ServerRequest, route: string) {
+function routeParams (req: Request, route: string) {
   const { pathname } = reqToURL(req);
   const requestURL = pathname.split('/');
   const routeURL = route.split('/');
@@ -139,7 +154,7 @@ function routeParams (req: ServerRequest, route: string) {
   }, {});
 }
 
-async function proxy (req: ServerRequest, page: Page): Promise<PartialResponse> {
+async function proxy (req: Request, page: Page): Promise<PartialResponse> {
   const partialContent = Boolean(req.headers.get('x-partial-content') || reqToURL(req).searchParams.get('partialContent'));
   const pageData = await page.handler(req, routeParams(req, page.route));
   const responseBody = [];
@@ -185,7 +200,7 @@ async function proxy (req: ServerRequest, page: Page): Promise<PartialResponse> 
       responseBody.push(headMarkup);
       responseBody.push(preSplit[1]);
     } else {
-      await req.respond({ body: preContent });
+      return { body: preContent, status: 200 };
     }
   }
 
@@ -205,7 +220,7 @@ async function proxy (req: ServerRequest, page: Page): Promise<PartialResponse> 
   return { headers, body: finalBody, status: 200 };
 }
 
-async function serveStatic (req: ServerRequest, filePath: string, serverConfig: ServerConfig): Promise<PartialResponse> {
+async function serveStatic (filePath: string): Promise<PartialResponse> {
   filePath = '.' + filePath;
   const file = await Deno.open(filePath, { read: true });
 
@@ -228,8 +243,8 @@ async function serveStatic (req: ServerRequest, filePath: string, serverConfig: 
 
 interface PartialResponse {
   status: number;
-  body: Uint8Array;
-  headers: Headers;
+  body: Uint8Array | string;
+  headers?: Headers;
 }
 
 export default class Nattramn {
@@ -245,7 +260,7 @@ export default class Nattramn {
     Object.freeze(this.config);
   }
 
-  handleRequest (req: ServerRequest): Promise<PartialResponse> {
+  handleRequest (req: Request): Promise<PartialResponse> {
     const url = reqToURL(req);
 
     const hasExtention = extname(url.pathname) !== "";
@@ -266,7 +281,7 @@ export default class Nattramn {
       }
 
       if (this.config.server.serveStatic) {
-        return serveStatic(req, '/' + this.config.server.serveStatic + url.pathname, this.config.server);
+        return serveStatic('/' + this.config.server.serveStatic + url.pathname);
       }
 
       throw new Error('Could not find file.');
@@ -281,60 +296,62 @@ export default class Nattramn {
     }
   }
 
-  async handleRequests (server: Server) {
-    for await (const req of server) {
-      try {
-        const handledRequest = this.handleRequest(req);
-        const { status, headers } = await handledRequest;
-        let { body } = await handledRequest;
+  async handleRequests (req: Request) {
+    try {
+      const handledRequest = this.handleRequest(req);
+      const { status, headers: responseHeaders } = await handledRequest;
+      let { body } = await handledRequest;
 
-        const checksum = new Sha1().update(body).hex();
+      body = body instanceof Uint8Array ? body : stringToUint8Array(body);
 
-        headers.set('ETag', checksum);
+      const headers = responseHeaders || new Headers();
 
-        if (headers.get('Cache-Control') === null) {
-          headers.set('Cache-Control', 'public, max-age=3600');
-        }
+      const checksum = await sha1(body);
 
-        const useGzip = this.config.server.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
-        const useBrotli = this.config.server.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
+      headers.set('ETag', checksum);
 
-        if (useGzip) {
-          headers.set('Content-Encoding', 'gzip');
-          body = gzipEncode(body);
-        }
-
-        if (useBrotli) {
-          headers.set('Content-Encoding', 'br');
-          body = brotliEncode(body);
-        }
-
-        headers.set('Content-Length', String(body.byteLength));
-
-        await req.respond({ body, status, headers });
-      } catch (e) {
-        console.debug(`Nattramn was asked to answer for ${req.url} but did not find a suitable way to handle it.`);
-
-        if (extname(req.url) === null) {
-          console.debug('The route is missing.', req.url);
-        }
-
-        if (extname(req.url) !== null) {
-          console.debug('The file is missing.', req.url);
-        }
-
-        console.error(e);
-
-        req.respond({ status: 404, body: 'Not Found' });
+      if (headers.get('Cache-Control') === null) {
+        headers.set('Cache-Control', 'public, max-age=3600');
       }
+
+      const useGzip = this.config.server.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
+      const useBrotli = this.config.server.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
+
+      if (useGzip) {
+        headers.set('Content-Encoding', 'gzip');
+        body = gzipEncode(body);
+      }
+
+      if (useBrotli) {
+        headers.set('Content-Encoding', 'br');
+        body = brotliEncode(body);
+      }
+
+      headers.set('Content-Length', String(body.byteLength));
+
+      return new Response(body, { status, headers });
+    } catch (e) {
+      console.debug(`Nattramn was asked to answer for ${req.url} but did not find a suitable way to handle it.`);
+
+      if (extname(req.url) === null) {
+        console.debug('The route is missing.', req.url);
+      }
+
+      if (extname(req.url) !== null) {
+        console.debug('The file is missing.', req.url);
+      }
+
+      console.error(e);
+
+      return new Response('Not Found', { status: 404 });
     }
   }
 
   async startServer (port = 5000) {
-    const server = serve({ port });
+    const listener = Deno.listen({ port });
 
     console.log('Nattramn is running at: http://localhost:' + port);
 
-    await this.handleRequests(server);
+    await serve(listener, r => this.handleRequests(r));
   }
 }
