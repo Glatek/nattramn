@@ -1,3 +1,3 @@
 #!/bin/sh
-git tag -a 'v0.0.30' -m 'v0.0.30'
+git tag -a 'v0.0.32' -m 'v0.0.32'
 git push origin --tags
