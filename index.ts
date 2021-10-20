@@ -118,21 +118,10 @@ function reqToURL (req: Request) {
 }
 
 function canHandleRoute (req: Request, route: string) {
-  const { pathname } = reqToURL(req);
-  const requestURL = pathname.split('/');
-  const routeURL = route.split('/');
+  const matcher = new URLPattern(route);
+  const result = matcher.exec(new URL(req.url).pathname);
 
-  const matches = routeURL
-    .map((value, index) => {
-      if (value.includes(':')) {
-        return true;
-      }
-
-      return value === requestURL[index];
-    })
-    .filter(Boolean);
-
-  return matches.length === routeURL.length && matches.length === requestURL.length;
+  return Boolean(result);
 }
 
 function routeParams (req: Request, route: string) {
