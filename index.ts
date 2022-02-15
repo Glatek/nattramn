@@ -1,6 +1,7 @@
 import {
   serve,
   extname,
+  readAll,
   brotliEncode,
   gzipEncode
 } from './deps.ts';
@@ -205,7 +206,7 @@ async function proxy (req: Request, page: Page): Promise<PartialResponse> {
     await responseBody.push(postContent);
   }
 
-  const finalBody =  new TextEncoder().encode(responseBody.join('\n'));
+  const finalBody = new TextEncoder().encode(responseBody.join('\n'));
 
   return { headers, body: finalBody, status: 200 };
 }
@@ -223,7 +224,7 @@ async function serveStatic (filePath: string): Promise<PartialResponse> {
       headers.set('content-type', contentType);
     }
 
-    const body = await Deno.readAll(file);
+    const body = await readAll(file);
 
     return { headers, body, status: 200 };
   } finally {
