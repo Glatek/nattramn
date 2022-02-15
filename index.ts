@@ -338,10 +338,8 @@ export default class Nattramn {
   }
 
   async startServer (port = 5000) {
-    const listener = Deno.listen({ port });
-
     console.log('Nattramn is running at: http://localhost:' + port);
 
-    await serve(listener, r => this.handleRequests(r));
+    await serve(r => this.handleRequests(r), { port });
   }
 }
