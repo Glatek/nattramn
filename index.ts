@@ -58,7 +58,7 @@ const MEDIA_TYPES: Record<string, string> = {
   ".webp": "image/webp",
   ".jpg": "image/jpeg",
   ".png": "image/png",
-  ".svg": "mage/svg+xml",
+  ".svg": "image/svg+xml",
 };
 
 function getContentType(path: string): string | undefined {
