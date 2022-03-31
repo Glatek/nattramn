@@ -1,9 +1,7 @@
 import {
   serve,
   extname,
-  readAll,
-  brotliEncode,
-  gzipEncode
+  readAll
 } from './deps.ts';
 
 interface PageData {
@@ -26,14 +24,7 @@ interface RouterConfig {
   pages: Page[];
 }
 
-export enum CompressionMethod {
-  Gzip = 'gzip',
-  Brotli = 'br',
-  None = 'none',
-}
-
 interface ServerConfig {
-  compression?: CompressionMethod;
   serveStatic?: string;
 }
 
@@ -244,10 +235,6 @@ export default class Nattramn {
   constructor (config: Config) {
     this.config = config;
 
-    if (this.config.server.compression === undefined) {
-      this.config.server.compression = CompressionMethod.Brotli;
-    }
-
     Object.freeze(this.config);
   }
 
@@ -303,19 +290,6 @@ export default class Nattramn {
 
       if (headers.get('Cache-Control') === null) {
         headers.set('Cache-Control', 'public, max-age=3600');
-      }
-
-      const useGzip = this.config.server.compression === 'gzip' && req.headers.get('accept-encoding')?.includes('gzip');
-      const useBrotli = this.config.server.compression === 'br' && req.headers.get('accept-encoding')?.includes('br');
-
-      if (useGzip) {
-        headers.set('Content-Encoding', 'gzip');
-        body = gzipEncode(body);
-      }
-
-      if (useBrotli) {
-        headers.set('Content-Encoding', 'br');
-        body = brotliEncode(body);
       }
 
       headers.set('Content-Length', String(body.byteLength));

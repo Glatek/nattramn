@@ -1,4 +1,4 @@
-import { default as Nattramn, CompressionMethod } from './index.ts';
+import { default as Nattramn } from './index.ts';
 
 const template = `
   <!DOCTYPE html>
@@ -16,7 +16,6 @@ const template = `
 
 const config = {
   server: {
-    compression: CompressionMethod.Brotli,
     serveStatic: 'public'
   },
   router: {
