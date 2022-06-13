@@ -239,8 +239,10 @@ export default class Nattramn {
       }
 
       if (this.config.server.serveStatic) {
-        console.log('Serve static:', this.config.server.serveStatic + url.pathname);
-        return serveFile(req, this.config.server.serveStatic + url.pathname);
+        console.log(req, 'Serve static:', this.config.server.serveStatic + url.pathname);
+        const res = await serveFile(req, this.config.server.serveStatic + url.pathname);
+        console.log(res);
+        return res;
       }
 
       throw new Error('Could not find file.');
