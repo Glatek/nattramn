@@ -219,44 +219,6 @@ export default class Nattramn {
   }
 
   async handleRequest (req: Request): Promise<PartialResponse> {
-    const url = reqToURL(req);
-
-    const hasExtention = extname(url.pathname) !== "";
-
-    if (hasExtention) {
-      if (url.pathname === '/nattramn-client.js') {
-        const version = 'v0.0.14';
-        const headers = new Headers({
-          'Location': `https://cdn.skypack.dev/nattramn@${version}/dist-web/index.bundled.js`,
-          'ETag': btoa(version)
-        });
-
-        return {
-          headers,
-          status: 302,
-          body: new Uint8Array([])
-        };
-      }
-
-      if (this.config.server.serveStatic) {
-        console.log(this.config.server.serveStatic + url.pathname);
-        const entries = [];
-        for await (const entry of Deno.readDir(".")) {
-          entries.push(entry);
-        }
-        console.log(entries);
-        const res = await serveFile(req, this.config.server.serveStatic + url.pathname);
-
-        return {
-          headers: new Headers(res.headers),
-          status: res.status,
-          body: res.body
-        }
-      }
-
-      throw new Error('Could not find file.');
-    }
-
     const page = this.config.router.pages.find(page => canHandleRoute(req, page.route));
 
     if (page) {
@@ -268,6 +230,33 @@ export default class Nattramn {
 
   async handleRequests (req: Request) {
     try {
+      const url = reqToURL(req);
+      const hasExtention = extname(url.pathname) !== "";
+
+      // Handle file requests
+      if (hasExtention) {
+        if (url.pathname === '/nattramn-client.js') {
+          const version = 'v0.0.14';
+          const headers = new Headers({
+            'Location': `https://cdn.skypack.dev/nattramn@${version}/dist-web/index.bundled.js`,
+            'ETag': btoa(version)
+          });
+
+          return new Response(null, {
+            headers,
+            status: 302
+          });
+        }
+
+        if (this.config.server.serveStatic) {
+          return serveFile(req, this.config.server.serveStatic + url.pathname);
+        }
+
+        return new Response(null, {
+          status: 404
+        });
+      }
+
       const handledRequest = this.handleRequest(req);
       const { status, headers: responseHeaders } = await handledRequest;
       let { body } = await handledRequest;
