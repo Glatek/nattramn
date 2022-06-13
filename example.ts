@@ -16,7 +16,7 @@ const template = `
 
 const config = {
   server: {
-    serveStatic: 'public'
+    serveStatic: `${Deno.cwd()}/public`
   },
   router: {
     pages: [
