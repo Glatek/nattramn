@@ -239,6 +239,8 @@ export default class Nattramn {
       }
 
       if (this.config.server.serveStatic) {
+        console.log(this.config.server.serveStatic + url.pathname);
+        console.log(Deno.readDir());
         const res = await serveFile(req, this.config.server.serveStatic + url.pathname);
 
         return {
