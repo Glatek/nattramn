@@ -218,7 +218,7 @@ export default class Nattramn {
     Object.freeze(this.config);
   }
 
-  handleRequest (req: Request): Promise<PartialResponse> {
+  async handleRequest (req: Request): Promise<PartialResponse> {
     const url = reqToURL(req);
 
     const hasExtention = extname(url.pathname) !== "";
@@ -231,18 +231,21 @@ export default class Nattramn {
           'ETag': btoa(version)
         });
 
-        return Promise.resolve({
+        return {
           headers,
           status: 302,
           body: new Uint8Array([])
-        });
+        };
       }
 
       if (this.config.server.serveStatic) {
-        console.log(req, 'Serve static:', this.config.server.serveStatic + url.pathname);
         const res = await serveFile(req, this.config.server.serveStatic + url.pathname);
-        console.log(res);
-        return res;
+
+        return {
+          headers: new Headers(res.headers),
+          status: res.status,
+          body: res.body
+        }
       }
 
       throw new Error('Could not find file.');
