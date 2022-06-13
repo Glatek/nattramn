@@ -1,7 +1,8 @@
 import {
   serve,
   extname,
-  readAll
+  readAll,
+  serveFile
 } from './deps.ts';
 
 interface PageData {
@@ -202,27 +203,6 @@ async function proxy (req: Request, page: Page): Promise<PartialResponse> {
   return { headers, body: finalBody, status: 200 };
 }
 
-async function serveStatic (filePath: string): Promise<PartialResponse> {
-  filePath = '.' + filePath;
-  const file = await Deno.open(filePath, { read: true });
-
-  try {
-    const headers = new Headers();
-
-    const contentType = getContentType(filePath);
-
-    if (contentType) {
-      headers.set('content-type', contentType);
-    }
-
-    const body = await readAll(file);
-
-    return { headers, body, status: 200 };
-  } finally {
-    Deno.close(file.rid);
-  }
-}
-
 interface PartialResponse {
   status: number;
   body: Uint8Array | string;
@@ -259,7 +239,7 @@ export default class Nattramn {
       }
 
       if (this.config.server.serveStatic) {
-        return serveStatic('/' + this.config.server.serveStatic + url.pathname);
+        return serveFile(this.config.server.serveStatic + url.pathname);
       }
 
       throw new Error('Could not find file.');
