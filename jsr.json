@@ -1,0 +1,5 @@
+{
+  "name": "@glatek/nattramn",
+  "version": "0.0.38",
+  "exports": "./index.ts"
+}
