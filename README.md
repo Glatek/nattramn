@@ -81,7 +81,7 @@ const nattramn = new Nattramn(config);
 await nattramn.startServer(5000);
 ```
 
-## What does Nattramn do.
+## What does Nattramn do
 
 Express-like functionally with handlers for route, with the big difference that when partial content is requested only the `<body>` content of the next page is fetched and replaces the inner content of `<nattramn-router>`. There is also support for  `<title>` in `<head>`, but not any other tags in head - as they usually do not matter for client side changes.
 
